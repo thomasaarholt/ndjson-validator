@@ -1,0 +1,13 @@
+[package]
+name = "py-ndjson-validator"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "py_ndjson_validator"
+crate-type = ["cdylib"]
+
+[dependencies]
+ndjson-validator = { path = ".." }
+pyo3 = { version = "0.25.0", features = ["extension-module"] }
+
