@@ -180,7 +180,7 @@ mod validate_file_tests {
 pub fn process_file(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<ValidationError>> {
     let errors = validate_file(file_path)?;
     
-    if config.clean_files && !errors.is_empty() && config.output_dir.is_some() {
+    if config.clean_files && config.output_dir.is_some() { // MODIFIED: Removed !errors.is_empty()
         let output_dir = config.output_dir.as_ref().unwrap();
         fs::create_dir_all(output_dir)
             .map_err(|_| NdJsonError::FailedToCreateOutputDir(output_dir.display().to_string()))?;
@@ -198,6 +198,7 @@ pub fn process_file(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<Va
 mod process_file_tests {
     use super::*;
     use tempfile::tempdir;
+    use std::fs; // Added for reading file content in new test
     
     #[test]
     fn test_cleaning_ndjson() {
@@ -245,6 +246,30 @@ mod process_file_tests {
         // No output file should be created
         let output_file = output_dir.join("invalid1.ndjson");
         assert!(!output_file.exists());
+    }
+
+    #[test]
+    fn test_copy_valid_file_when_cleaning_enabled() {
+        let temp_dir = tempdir().unwrap();
+        let output_dir = temp_dir.path();
+        
+        let file_path = Path::new("tests/valid.ndjson"); // Use a valid file
+        let config = ValidatorConfig {
+            clean_files: true, // Cleaning enabled
+            output_dir: Some(output_dir.to_path_buf()),
+            parallel: false,
+        };
+        
+        let errors = process_file(file_path, &config).unwrap();
+        assert_eq!(errors.len(), 0); // No errors in valid file
+        
+        // Output file should be created and be a copy of the input
+        let output_file_path = output_dir.join("valid.ndjson");
+        assert!(output_file_path.exists());
+        
+        let input_content = fs::read_to_string(file_path).unwrap();
+        let output_content = fs::read_to_string(output_file_path).unwrap();
+        assert_eq!(input_content, output_content);
     }
 }
 
@@ -300,7 +325,7 @@ mod clean_file_tests {
                 error: "test error".to_string(),
             },
             ValidationError {
-                file_path: input_path.to_path_buf(),
+                file_path: input_path to_path_buf(),
                 line_number: 4,
                 line_content: "line4".to_string(),
                 error: "test error".to_string(),
