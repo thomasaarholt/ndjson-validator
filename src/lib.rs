@@ -271,6 +271,30 @@ mod process_file_tests {
         let output_content = fs::read_to_string(output_file_path).unwrap();
         assert_eq!(input_content, output_content);
     }
+
+    #[test]
+    fn test_process_file_all_invalid_cleans_to_nothing() {
+        let temp_output_dir = tempdir().unwrap(); // Directory for cleaned output
+        let output_dir_path = temp_output_dir.path();
+
+        // Create a temporary input directory and file
+        let temp_input_dir = tempdir().unwrap();
+        let input_file_name = "all_invalid.ndjson";
+        let input_file_path = temp_input_dir.path().join(input_file_name);
+        fs::write(&input_file_path, "{\"key\": value}\n[1,2\n").unwrap(); // Two invalid JSON lines
+
+        let config = ValidatorConfig {
+            clean_files: true,
+            output_dir: Some(output_dir_path.to_path_buf()),
+            parallel: false,
+        };
+
+        let errors = process_file(&input_file_path, &config).unwrap();
+        assert_eq!(errors.len(), 2, "Should find two errors in the input file");
+
+        let expected_output_file_path = output_dir_path.join(input_file_name);
+        assert!(!expected_output_file_path.exists(), "Output file {:?} should not exist if cleaning results in an empty file", expected_output_file_path);
+    }
 }
 
 /// Writes a cleaned version of the file without the invalid JSON lines
@@ -278,31 +302,43 @@ fn clean_file(input_path: &Path, output_path: &Path, errors: &[ValidationError])
     let input_file = File::open(input_path)?;
     let reader = BufReader::new(input_file);
     
-    let output_file = File::create(output_path)?;
-    let mut writer = BufWriter::new(output_file);
-    
-    let invalid_lines: Vec<usize> = errors.iter()
+    let invalid_lines: HashSet<usize> = errors.iter() // MODIFIED: Use HashSet
         .map(|e| e.line_number)
         .collect();
     
+    let mut lines_written = 0; // ADDED: Counter for lines written
+    
+    // Create the output file. It will be empty initially or truncated if it exists.
+    let output_file_handle = File::create(output_path)?;
+    let mut writer = BufWriter::new(output_file_handle);
+    
     for (i, line_result) in reader.lines().enumerate() {
         let line_number = i + 1;
-        let line = line_result?;
+        let line = line_result?; // Propagates IO errors from reading lines
         
         if !invalid_lines.contains(&line_number) {
-            writeln!(writer, "{}", line)?;
+            writeln!(writer, "{}", line)?; // Propagates IO errors from writing lines
+            lines_written += 1; // ADDED: Increment counter
         }
     }
     
-    writer.flush()?;
+    writer.flush()?; // Ensure all buffered data is written to the underlying file.
+    drop(writer); // ADDED: Explicitly drop writer to close the file before potential deletion.
+
+    if lines_written == 0 { // ADDED: Check if any lines were written
+        // If no lines were written, the file is effectively empty. Remove it.
+        fs::remove_file(output_path)?;
+    }
+    
     Ok(())
 }
 
 #[cfg(test)]
 mod clean_file_tests {
     use super::*;
-    use tempfile::NamedTempFile;
-    
+    use tempfile::{NamedTempFile, tempdir}; // ADDED tempdir
+    use std::fs;
+
     #[test]
     fn test_clean_file_removes_invalid_lines() {
         // Create a temporary input file
@@ -310,7 +346,7 @@ mod clean_file_tests {
         let input_path = input_file.path();
         
         // Write test content to the input file
-        fs::write(input_path, "line1\nline2\nline3\nline4\n").unwrap();
+        fs::write(input_path, "line1\\nline2\\nline3\\nline4\\n").unwrap();
         
         // Create a temporary output file
         let output_file = NamedTempFile::new().unwrap();
@@ -325,7 +361,7 @@ mod clean_file_tests {
                 error: "test error".to_string(),
             },
             ValidationError {
-                file_path: input_path to_path_buf(),
+                file_path: input_path.to_path_buf(), // FIXED TYPO: added .before to_path_buf()
                 line_number: 4,
                 line_content: "line4".to_string(),
                 error: "test error".to_string(),
@@ -340,6 +376,37 @@ mod clean_file_tests {
         
         // Check that lines 2 and 4 were removed
         assert_eq!(content, "line1\nline3\n");
+    }
+
+    #[test]
+    fn test_clean_file_all_invalid_lines_no_output() {
+        // Create a temporary input file
+        let input_file = NamedTempFile::new().unwrap();
+        let input_path = input_file.path();
+        fs::write(input_path, "corrupt1\\ncorrupt2\\n").unwrap();
+        
+        // Create a path for the output file (it might not be created)
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("cleaned_output.ndjson");
+
+        let errors = vec![
+            ValidationError {
+                file_path: input_path.to_path_buf(),
+                line_number: 1,
+                line_content: "corrupt1".to_string(),
+                error: "test error".to_string(),
+            },
+            ValidationError {
+                file_path: input_path.to_path_buf(),
+                line_number: 2,
+                line_content: "corrupt2".to_string(),
+                error: "test error".to_string(),
+            },
+        ];
+        
+        clean_file(input_path, &output_path, &errors).unwrap();
+        
+        assert!(!output_path.exists(), "Output file should not exist when all lines are invalid");
     }
 }
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+rm -rf target/wheels
+
 # List the Python versions you want to build for
 PY_VERSIONS=(3.9 3.10 3.11 3.12 3.13)
 
