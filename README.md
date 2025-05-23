@@ -4,12 +4,32 @@ A high-performance Rust library and CLI tool for validating and cleaning ND-JSON
 
 ## Features
 
-- ✅ Fast validation of ND-JSON files
+- ✅ Fast validation of ND-JSON files with detailed error reporting
 - ✅ Parallel processing for multi-file validation
-- ✅ Clean mode to remove invalid JSON lines
-- ✅ Detailed error reporting
+- ✅ Clean mode to remove invalid JSON lines and create corrected files
 - ✅ Support for validating individual files, multiple files, or entire directories
 - ✅ Easy-to-use programmatic API for integration into other tools
+- ✅ Well-organized modular codebase for easy maintenance and extension
+
+## Project Structure
+
+This project is organized into several modules for better maintainability:
+
+```
+src/
+├── lib.rs           # Main library entry point and public API
+├── main.rs          # CLI application entry point
+├── cli.rs           # Command-line interface definitions
+├── commands.rs      # Command handlers and output formatting
+├── config.rs        # Configuration structures
+├── error.rs         # Error types and definitions
+├── validator.rs     # Core validation logic
+├── cleaner.rs       # File cleaning functionality
+└── processor.rs     # High-level processing functions
+
+tests/
+└── integration.rs   # Integration tests
+```
 
 ## Installation
 
@@ -114,6 +134,53 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Found {} errors in {} files", summary.total_errors, summary.files_with_errors);
     
     Ok(())
+}
+```
+
+## Library API
+
+The library provides a clean, modular API organized into focused modules:
+
+### Core Functions
+
+- `validate_file()` - Validate a single ND-JSON file
+- `validate_files()` - Validate multiple files with optional parallel processing
+- `validate_directory()` - Validate all ND-JSON files in a directory
+- `process_file()` - Validate and optionally clean a single file
+- `validate_multiple()` - Validate multiple files and return summary statistics
+
+### Configuration
+
+```rust
+use ndjson_validator::ValidatorConfig;
+
+let config = ValidatorConfig {
+    clean_files: true,                          // Enable cleaning mode
+    output_dir: Some(PathBuf::from("output")),  // Where to write cleaned files
+    parallel: true,                             // Use parallel processing
+};
+```
+
+### Error Types
+
+The library uses custom error types for better error handling:
+
+```rust
+use ndjson_validator::{NdJsonError, ValidationError, ValidationSummary};
+
+// Detailed error information for each invalid line
+struct ValidationError {
+    pub file_path: PathBuf,
+    pub line_number: usize,
+    pub line_content: String,
+    pub error: String,
+}
+
+// Summary of validation results
+struct ValidationSummary {
+    pub total_files: usize,
+    pub files_with_errors: usize,
+    pub total_errors: usize,
 }
 ```
 

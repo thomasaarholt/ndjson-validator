@@ -2,9 +2,13 @@
 name = "ndjson-validator"
 version = "0.1.0"
 edition = "2021"
-authors = ["Author <author@example.com>"]
-description = "A high-performance ND-JSON file validator and cleaner"
+authors = ["Your Name <your.email@example.com>"]
+description = "A high-performance ND-JSON (Newline Delimited JSON) file validator and cleaner written in Rust"
 license = "MIT"
+keywords = ["json", "ndjson", "validation", "cli", "parsing"]
+categories = ["command-line-utilities", "parsing"]
+repository = "https://github.com/username/ndjson-validator"
+readme = "README.md"
 
 [lib]
 name = "ndjson_validator"
