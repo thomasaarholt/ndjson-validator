@@ -145,7 +145,6 @@ The library provides a clean, modular API organized into focused modules:
 
 - `validate_file()` - Validate a single ND-JSON file
 - `validate_files()` - Validate multiple files with optional parallel processing
-- `validate_directory()` - Validate all ND-JSON files in a directory
 - `process_file()` - Validate and optionally clean a single file
 - `validate_multiple()` - Validate multiple files and return summary statistics
 

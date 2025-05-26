@@ -7,25 +7,6 @@ use serde_json::Value;
 use crate::error::{Result, ValidationError};
 
 /// Validates a single ND-JSON file and returns a list of validation errors
-///
-/// # Examples
-///
-/// ```
-/// use std::path::Path;
-/// use ndjson_validator::validate_file;
-///
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// let file_path = Path::new("tests/valid.ndjson");
-/// let errors = validate_file(file_path)?;
-/// assert_eq!(errors.len(), 0); // No errors in a valid file
-///
-/// let invalid_file_path = Path::new("tests/invalid1.ndjson");
-/// let errors = validate_file(invalid_file_path)?;
-/// assert_eq!(errors.len(), 1); // One error in this file
-/// assert_eq!(errors[0].line_number, 1); // Error is on line 1
-/// # Ok(())
-/// # }
-/// ```
 pub fn validate_file(file_path: &Path) -> Result<Vec<ValidationError>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
