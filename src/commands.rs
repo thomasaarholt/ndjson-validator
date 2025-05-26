@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use ndjson_validator::{
-    validate_directory_with_summary, validate_file, validate_multiple, 
+    validate_directory_with_summary, validate_file, validate_files_with_summary, 
     ValidationError, ValidationSummary, ValidatorConfig
 };
 
@@ -94,7 +94,7 @@ pub fn handle_validate_files(file_paths: &[PathBuf], clean: bool, output_dir: &O
     };
     
     let start = Instant::now();
-    let (summary, errors) = validate_multiple(file_paths, &config)
+    let (summary, errors) = validate_files_with_summary(file_paths, &config)
         .with_context(|| "Failed to validate files")?;
     let duration = start.elapsed();
     

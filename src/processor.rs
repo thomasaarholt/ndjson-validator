@@ -30,18 +30,13 @@ pub fn process_file(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<Va
 
 /// Validates a list of ND-JSON files
 pub fn validate_files(
-    file_paths: &[PathBuf],
+    files: &[PathBuf],
     config: &ValidatorConfig,
 ) -> Result<Vec<ValidationError>> {
-    let process_fn =
-        |file_path: &PathBuf| -> Result<Vec<ValidationError>> { process_file(file_path, config) };
-
-    let results = {
-        file_paths
-            .par_iter()
-            .map(process_fn)
-            .collect::<Vec<Result<Vec<ValidationError>>>>()
-    };
+    let results = files
+        .par_iter()
+        .map(|file_path| process_file(file_path, config))
+        .collect::<Vec<Result<Vec<ValidationError>>>>();
 
     // Flatten results and collect errors
     let mut all_errors = Vec::new();
@@ -56,7 +51,7 @@ pub fn validate_files(
 }
 
 /// Validates multiple ND-JSON files and returns a summary along with detailed errors
-pub fn validate_multiple(
+pub fn validate_files_with_summary(
     files: &[PathBuf],
     config: &ValidatorConfig,
 ) -> Result<(ValidationSummary, Vec<ValidationError>)> {
@@ -103,7 +98,7 @@ pub fn validate_directory_with_summary(
         return Err(NdJsonError::NoFilesFound(dir_path.display().to_string()));
     }
 
-    validate_multiple(&file_paths, config)
+    validate_files_with_summary(&file_paths, config)
 }
 
 #[cfg(test)]
@@ -250,7 +245,7 @@ mod tests {
         ];
 
         let config = ValidatorConfig::default();
-        let (summary, errors) = validate_multiple(&files, &config).unwrap();
+        let (summary, errors) = validate_files_with_summary(&files, &config).unwrap();
 
         assert_eq!(summary.total_files, 3);
         assert_eq!(summary.files_with_errors, 2); // valid.ndjson has no errors
