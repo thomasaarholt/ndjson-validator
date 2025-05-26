@@ -23,24 +23,24 @@ use crate::validator::validate_file;
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let temp_dir = tempdir()?;
 /// let output_dir = temp_dir.path();
-/// 
+///
 /// // Create a config with cleaning enabled
 /// let config = ValidatorConfig {
 ///     clean_files: true,
 ///     output_dir: Some(output_dir.to_path_buf()),
 ///     parallel: false,
 /// };
-/// 
+///
 /// // Process a file with invalid JSON
 /// let file_path = Path::new("tests/invalid1.ndjson");
 /// let errors = process_file(file_path, &config)?;
-/// 
+///
 /// // Verify results
 /// assert_eq!(errors.len(), 1); // One error was found
-/// 
+///
 /// let output_file = output_dir.join("invalid1.ndjson");
 /// let content = fs::read_to_string(output_file)?;
-/// 
+///
 /// // Cleaned file should only have 2 valid lines
 /// let line_count = content.lines().count();
 /// assert_eq!(line_count, 2);
@@ -49,18 +49,18 @@ use crate::validator::validate_file;
 /// ```
 pub fn process_file(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<ValidationError>> {
     let errors = validate_file(file_path)?;
-    
+
     if config.clean_files && config.output_dir.is_some() {
         let output_dir = config.output_dir.as_ref().unwrap();
         fs::create_dir_all(output_dir)
             .map_err(|_| NdJsonError::FailedToCreateOutputDir(output_dir.display().to_string()))?;
-        
+
         let relative_path = file_path.file_name().unwrap_or_default();
         let output_path = output_dir.join(relative_path);
-        
+
         clean_file(file_path, &output_path, &errors)?;
     }
-    
+
     Ok(errors)
 }
 
@@ -85,23 +85,27 @@ pub fn process_file(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<Va
 /// # Ok(())
 /// # }
 /// ```
-pub fn validate_files(file_paths: &[PathBuf], config: &ValidatorConfig) -> Result<Vec<ValidationError>> {
-    let process_fn = |file_path: &PathBuf| -> Result<Vec<ValidationError>> {
-        process_file(file_path, config)
-    };
-    
+pub fn validate_files(
+    file_paths: &[PathBuf],
+    config: &ValidatorConfig,
+) -> Result<Vec<ValidationError>> {
+    let process_fn =
+        |file_path: &PathBuf| -> Result<Vec<ValidationError>> { process_file(file_path, config) };
+
     let results = if config.parallel {
         // Process files in parallel
-        file_paths.par_iter()
+        file_paths
+            .par_iter()
             .map(process_fn)
             .collect::<Vec<Result<Vec<ValidationError>>>>()
     } else {
         // Process files sequentially
-        file_paths.iter()
+        file_paths
+            .iter()
             .map(process_fn)
             .collect::<Vec<Result<Vec<ValidationError>>>>()
     };
-    
+
     // Flatten results and collect errors
     let mut all_errors = Vec::new();
     for result in results {
@@ -110,29 +114,35 @@ pub fn validate_files(file_paths: &[PathBuf], config: &ValidatorConfig) -> Resul
             Err(e) => return Err(e),
         }
     }
-    
+
     Ok(all_errors)
 }
 
 /// Validates all ND-JSON files in a directory
-pub fn validate_directory(dir_path: &Path, config: &ValidatorConfig) -> Result<Vec<ValidationError>> {
+pub fn validate_directory(
+    dir_path: &Path,
+    config: &ValidatorConfig,
+) -> Result<Vec<ValidationError>> {
     let mut file_paths = Vec::new();
-    
+
     // Find all NDJSON files in the directory
     for entry_result in WalkDir::new(dir_path).max_depth(1).into_iter() {
         let entry = entry_result?;
         let path = entry.path();
-        if path.is_file() && 
-           (path.extension().map_or(false, |ext| ext == "ndjson" || ext == "jsonl") || 
-            path.to_string_lossy().contains(".nd.json")) {
+        if path.is_file()
+            && (path
+                .extension()
+                .map_or(false, |ext| ext == "ndjson" || ext == "jsonl")
+                || path.to_string_lossy().contains(".nd.json"))
+        {
             file_paths.push(path.to_path_buf());
         }
     }
-    
+
     if file_paths.is_empty() {
         return Err(NdJsonError::NoFilesFound(dir_path.display().to_string()));
     }
-    
+
     validate_files(&file_paths, config)
 }
 
@@ -161,100 +171,104 @@ pub fn validate_directory(dir_path: &Path, config: &ValidatorConfig) -> Result<V
 /// # }
 /// ```
 pub fn validate_multiple(
-    files: &[PathBuf], 
-    config: &ValidatorConfig
+    files: &[PathBuf],
+    config: &ValidatorConfig,
 ) -> Result<(ValidationSummary, Vec<ValidationError>)> {
     let errors = validate_files(files, config)?;
-    
+
     // Count unique files with errors
-    let files_with_errors = errors.iter()
+    let files_with_errors = errors
+        .iter()
         .map(|e| &e.file_path)
         .collect::<HashSet<_>>()
         .len();
-    
+
     let summary = ValidationSummary {
         total_files: files.len(),
         files_with_errors,
         total_errors: errors.len(),
     };
-    
+
     Ok((summary, errors))
 }
 
 /// Validates all ND-JSON files in a directory and returns a summary along with detailed errors
 pub fn validate_directory_with_summary(
-    dir_path: &Path, 
-    config: &ValidatorConfig
+    dir_path: &Path,
+    config: &ValidatorConfig,
 ) -> Result<(ValidationSummary, Vec<ValidationError>)> {
     let mut file_paths = Vec::new();
-    
+
     // Find all NDJSON files in the directory
     for entry_result in WalkDir::new(dir_path).max_depth(1).into_iter() {
         let entry = entry_result?;
         let path = entry.path();
-        if path.is_file() && 
-           (path.extension().map_or(false, |ext| ext == "ndjson" || ext == "jsonl") || 
-            path.to_string_lossy().contains(".nd.json")) {
+        if path.is_file()
+            && (path
+                .extension()
+                .map_or(false, |ext| ext == "ndjson" || ext == "jsonl")
+                || path.to_string_lossy().contains(".nd.json"))
+        {
             file_paths.push(path.to_path_buf());
         }
     }
-    
+
     if file_paths.is_empty() {
         return Err(NdJsonError::NoFilesFound(dir_path.display().to_string()));
     }
-    
+
     validate_multiple(&file_paths, config)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::fs;
+    use tempfile::tempdir;
 
     #[test]
     fn test_cleaning_ndjson() {
         let temp_dir = tempdir().unwrap();
         let output_dir = temp_dir.path();
-        
+
         let file_path = Path::new("tests/invalid1.ndjson");
         let config = ValidatorConfig {
             clean_files: true,
             output_dir: Some(output_dir.to_path_buf()),
             parallel: false,
         };
-        
+
         let errors = process_file(file_path, &config).unwrap();
         assert_eq!(errors.len(), 1);
-        
+
         let output_file = output_dir.join("invalid1.ndjson");
         let content = fs::read_to_string(output_file).unwrap();
-        
+
         // Cleaned file should only have 2 lines
         let line_count = content.lines().count();
         assert_eq!(line_count, 2);
-        
+
         // Check that the file contains "Bob" and "Charlie" but not "Alice"
         assert!(!content.contains("Alice"));
         assert!(content.contains("Bob"));
         assert!(content.contains("Charlie"));
     }
-    
+
     #[test]
     fn test_no_cleaning_when_disabled() {
         let temp_dir = tempdir().unwrap();
         let output_dir = temp_dir.path();
-        
+
         let file_path = Path::new("tests/invalid1.ndjson");
         let config = ValidatorConfig {
             clean_files: false, // Cleaning disabled
             output_dir: Some(output_dir.to_path_buf()),
             parallel: false,
         };
-        
+
         let errors = process_file(file_path, &config).unwrap();
         assert_eq!(errors.len(), 1);
-        
+
         // No output file should be created
         let output_file = output_dir.join("invalid1.ndjson");
         assert!(!output_file.exists());
@@ -264,21 +278,21 @@ mod tests {
     fn test_copy_valid_file_when_cleaning_enabled() {
         let temp_dir = tempdir().unwrap();
         let output_dir = temp_dir.path();
-        
+
         let file_path = Path::new("tests/valid.ndjson"); // Use a valid file
         let config = ValidatorConfig {
             clean_files: true, // Cleaning enabled
             output_dir: Some(output_dir.to_path_buf()),
             parallel: false,
         };
-        
+
         let errors = process_file(file_path, &config).unwrap();
         assert_eq!(errors.len(), 0); // No errors in valid file
-        
+
         // Output file should be created and be a copy of the input
         let output_file_path = output_dir.join("valid.ndjson");
         assert!(output_file_path.exists());
-        
+
         let input_content = fs::read_to_string(file_path).unwrap();
         let output_content = fs::read_to_string(output_file_path).unwrap();
         assert_eq!(input_content, output_content);
@@ -305,7 +319,11 @@ mod tests {
         assert_eq!(errors.len(), 2, "Should find two errors in the input file");
 
         let expected_output_file_path = output_dir_path.join(input_file_name);
-        assert!(!expected_output_file_path.exists(), "Output file {:?} should not exist if cleaning results in an empty file", expected_output_file_path);
+        assert!(
+            !expected_output_file_path.exists(),
+            "Output file {:?} should not exist if cleaning results in an empty file",
+            expected_output_file_path
+        );
     }
 
     #[test]
@@ -314,14 +332,14 @@ mod tests {
             PathBuf::from("tests/valid.ndjson"),
             PathBuf::from("tests/invalid1.ndjson"),
         ];
-        
+
         let config = ValidatorConfig::default();
         let errors = validate_files(&files, &config).unwrap();
-        
+
         assert_eq!(errors.len(), 1); // One error from invalid1.ndjson
         assert!(errors[0].file_path.ends_with("invalid1.ndjson"));
     }
-    
+
     #[test]
     fn test_parallel_vs_sequential() {
         let files = vec![
@@ -329,7 +347,7 @@ mod tests {
             PathBuf::from("tests/invalid1.ndjson"),
             PathBuf::from("tests/invalid2.ndjson"),
         ];
-        
+
         // Test with parallel processing
         let parallel_config = ValidatorConfig {
             clean_files: false,
@@ -337,7 +355,7 @@ mod tests {
             parallel: true,
         };
         let parallel_errors = validate_files(&files, &parallel_config).unwrap();
-        
+
         // Test with sequential processing
         let sequential_config = ValidatorConfig {
             clean_files: false,
@@ -345,7 +363,7 @@ mod tests {
             parallel: false,
         };
         let sequential_errors = validate_files(&files, &sequential_config).unwrap();
-        
+
         // Both should have the same number of errors
         assert_eq!(parallel_errors.len(), sequential_errors.len());
         assert_eq!(parallel_errors.len(), 1 + 8); // 1 from invalid1.ndjson + 8 from invalid2.ndjson
@@ -355,31 +373,38 @@ mod tests {
     fn test_validate_directory() {
         let config = ValidatorConfig::default();
         let errors = validate_directory(Path::new("tests"), &config).unwrap();
-        
+
         // We should have errors from both invalid files
         assert!(errors.len() > 0);
-        
+
         // Check that errors came from the invalid files
-        let invalid_files: HashSet<_> = errors.iter()
-            .map(|e| e.file_path.file_name().unwrap().to_string_lossy().to_string())
+        let invalid_files: HashSet<_> = errors
+            .iter()
+            .map(|e| {
+                e.file_path
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string()
+            })
             .collect();
-        
+
         assert!(invalid_files.contains("invalid1.ndjson"));
         assert!(invalid_files.contains("invalid2.ndjson"));
     }
-    
+
     #[test]
     fn test_empty_directory() {
         let temp_dir = tempdir().unwrap();
         let config = ValidatorConfig::default();
-        
+
         // Should return an error for an empty directory
         let result = validate_directory(temp_dir.path(), &config);
         assert!(result.is_err());
-        
+
         if let Err(err) = result {
             match err {
-                NdJsonError::NoFilesFound(_) => {}, // This is the expected error
+                NdJsonError::NoFilesFound(_) => {} // This is the expected error
                 _ => panic!("Unexpected error type: {:?}", err),
             }
         }
@@ -392,10 +417,10 @@ mod tests {
             PathBuf::from("tests/invalid1.ndjson"),
             PathBuf::from("tests/invalid2.ndjson"),
         ];
-        
+
         let config = ValidatorConfig::default();
         let (summary, errors) = validate_multiple(&files, &config).unwrap();
-        
+
         assert_eq!(summary.total_files, 3);
         assert_eq!(summary.files_with_errors, 2); // valid.ndjson has no errors
         assert_eq!(summary.total_errors, errors.len());
@@ -404,8 +429,9 @@ mod tests {
     #[test]
     fn test_directory_summary() {
         let config = ValidatorConfig::default();
-        let (summary, errors) = validate_directory_with_summary(Path::new("tests"), &config).unwrap();
-        
+        let (summary, errors) =
+            validate_directory_with_summary(Path::new("tests"), &config).unwrap();
+
         assert_eq!(summary.total_files, 3); // valid.ndjson, invalid1.ndjson, invalid2.ndjson
         assert_eq!(summary.files_with_errors, 2); // Two files with errors
         assert_eq!(summary.total_errors, errors.len());
