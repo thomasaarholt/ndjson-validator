@@ -35,7 +35,6 @@ fn test_integration_cleaning_ndjson() {
     let config = ValidatorConfig {
         clean_files: true,
         output_dir: Some(output_dir.to_path_buf()),
-        parallel: false,
     };
     
     let errors = process_file(file_path, &config).unwrap();

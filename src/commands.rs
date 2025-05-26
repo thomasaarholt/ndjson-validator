@@ -64,7 +64,6 @@ pub fn handle_validate_file(file_path: &PathBuf, clean: bool, output_dir: &Optio
     let _config = ValidatorConfig {
         clean_files: clean,
         output_dir: output_dir.clone(),
-        parallel: true,
     };
     
     let start = Instant::now();
@@ -92,7 +91,6 @@ pub fn handle_validate_files(file_paths: &[PathBuf], clean: bool, output_dir: &O
     let config = ValidatorConfig {
         clean_files: clean,
         output_dir: output_dir.clone(),
-        parallel: true,
     };
     
     let start = Instant::now();
@@ -115,7 +113,6 @@ pub fn handle_validate_dir(dir_path: &PathBuf, clean: bool, output_dir: &Option<
     let config = ValidatorConfig {
         clean_files: clean,
         output_dir: output_dir.clone(),
-        parallel: true,
     };
     
     let start = Instant::now();

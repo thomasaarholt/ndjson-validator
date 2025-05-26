@@ -39,7 +39,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ValidatorConfig {
         clean_files: true,
         output_dir: Some(PathBuf::from("cleaned_output")),
-        parallel: true,
     };
     
     let (summary, _errors) = validate_directory_with_summary(dir_path, &config)?;

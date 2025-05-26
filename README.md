@@ -125,7 +125,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ValidatorConfig {
         clean_files: true,
         output_dir: Some(PathBuf::from("cleaned")),
-        parallel: true,
     };
     
     let (summary, errors) = validate_multiple(&files, &config)?;
@@ -156,7 +155,6 @@ use ndjson_validator::ValidatorConfig;
 let config = ValidatorConfig {
     clean_files: true,                          // Enable cleaning mode
     output_dir: Some(PathBuf::from("output")),  // Where to write cleaned files
-    parallel: true,                             // Use parallel processing
 };
 ```
 

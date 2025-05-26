@@ -9,8 +9,6 @@ pub struct ValidatorConfig {
     /// Directory to write cleaned files to (if clean_files is true)
     pub output_dir: Option<PathBuf>,
     
-    /// Whether to use parallel processing for faster validation
-    pub parallel: bool,
 }
 
 impl Default for ValidatorConfig {
@@ -18,7 +16,6 @@ impl Default for ValidatorConfig {
         Self {
             clean_files: false,
             output_dir: None,
-            parallel: true,
         }
     }
 }

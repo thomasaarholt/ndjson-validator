@@ -29,7 +29,6 @@ fn clean_ndjson_rust(files: Vec<String>, output_dir: &str) -> PyResult<(Vec<Stri
     let config = ValidatorConfig {
         clean_files: true,
         output_dir: Some(output_dir_path.clone()),
-        parallel: true,
     };
 
     // Run validation and cleaning

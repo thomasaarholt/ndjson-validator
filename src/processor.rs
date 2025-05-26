@@ -36,16 +36,9 @@ pub fn validate_files(
     let process_fn =
         |file_path: &PathBuf| -> Result<Vec<ValidationError>> { process_file(file_path, config) };
 
-    let results = if config.parallel {
-        // Process files in parallel
+    let results = {
         file_paths
             .par_iter()
-            .map(process_fn)
-            .collect::<Vec<Result<Vec<ValidationError>>>>()
-    } else {
-        // Process files sequentially
-        file_paths
-            .iter()
             .map(process_fn)
             .collect::<Vec<Result<Vec<ValidationError>>>>()
     };
@@ -128,7 +121,6 @@ mod tests {
         let config = ValidatorConfig {
             clean_files: true,
             output_dir: Some(output_dir.to_path_buf()),
-            parallel: false,
         };
 
         let errors = process_file(file_path, &config).unwrap();
@@ -156,7 +148,6 @@ mod tests {
         let config = ValidatorConfig {
             clean_files: false, // Cleaning disabled
             output_dir: Some(output_dir.to_path_buf()),
-            parallel: false,
         };
 
         let errors = process_file(file_path, &config).unwrap();
@@ -176,7 +167,6 @@ mod tests {
         let config = ValidatorConfig {
             clean_files: true, // Cleaning enabled
             output_dir: Some(output_dir.to_path_buf()),
-            parallel: false,
         };
 
         let errors = process_file(file_path, &config).unwrap();
@@ -205,7 +195,6 @@ mod tests {
         let config = ValidatorConfig {
             clean_files: true,
             output_dir: Some(output_dir_path.to_path_buf()),
-            parallel: false,
         };
 
         let errors = process_file(&input_file_path, &config).unwrap();
@@ -241,24 +230,12 @@ mod tests {
             PathBuf::from("tests/invalid2.ndjson"),
         ];
 
-        // Test with parallel processing
         let parallel_config = ValidatorConfig {
             clean_files: false,
             output_dir: None,
-            parallel: true,
         };
         let parallel_errors = validate_files(&files, &parallel_config).unwrap();
 
-        // Test with sequential processing
-        let sequential_config = ValidatorConfig {
-            clean_files: false,
-            output_dir: None,
-            parallel: false,
-        };
-        let sequential_errors = validate_files(&files, &sequential_config).unwrap();
-
-        // Both should have the same number of errors
-        assert_eq!(parallel_errors.len(), sequential_errors.len());
         assert_eq!(parallel_errors.len(), 1 + 8); // 1 from invalid1.ndjson + 8 from invalid2.ndjson
     }
 

@@ -19,12 +19,10 @@ fn main() -> io::Result<()> {
     println!("Generating {} test files with {} lines each...", num_files, lines_per_file);
     generate_test_files(&test_dir, num_files, lines_per_file, error_rate)?;
     
-    // Run benchmark with parallel processing
     println!("\nRunning benchmark with parallel processing...");
     let parallel_config = ValidatorConfig {
         clean_files: false,
         output_dir: None,
-        parallel: true,
     };
     
     let start = Instant::now();
@@ -37,29 +35,6 @@ fn main() -> io::Result<()> {
     println!("  Files with errors: {}", summary.files_with_errors);
     println!("  Total errors: {}", summary.total_errors);
     println!("  Time taken: {:.2?}", parallel_duration);
-    
-    // Run benchmark with sequential processing
-    println!("\nRunning benchmark with sequential processing...");
-    let sequential_config = ValidatorConfig {
-        clean_files: false,
-        output_dir: None,
-        parallel: false,
-    };
-    
-    let start = Instant::now();
-    let (summary, _) = validate_directory_with_summary(&test_dir, &sequential_config)
-        .expect("Failed to validate directory");
-    let sequential_duration = start.elapsed();
-    
-    println!("Sequential processing results:");
-    println!("  Total files: {}", summary.total_files);
-    println!("  Files with errors: {}", summary.files_with_errors);
-    println!("  Total errors: {}", summary.total_errors);
-    println!("  Time taken: {:.2?}", sequential_duration);
-    
-    // Calculate speedup
-    let speedup = sequential_duration.as_secs_f64() / parallel_duration.as_secs_f64();
-    println!("\nSpeedup from parallel processing: {:.2}x", speedup);
     
     Ok(())
 }
