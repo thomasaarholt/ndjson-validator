@@ -15,7 +15,7 @@ class ErrorEntry:
     line_content: str
     error: str
 
-def clean_ndjson(files: List[str], output_dir: str) -> Tuple[List[str], List[ErrorEntry]]:
+def clean_ndjson_rust(files: List[str], output_dir: str) -> Tuple[List[str], List[ErrorEntry]]:
     """
     Validates and cleans NDJSON files.
     

@@ -17,7 +17,7 @@ for version in "${PY_VERSIONS[@]}"; do
     # Activate virtual environment
     source .venv/bin/activate
 
-    # Optional: upgrade pip and install maturin
+    # Install maturin
     uv pip install --upgrade maturin
 
     # Build the wheel
