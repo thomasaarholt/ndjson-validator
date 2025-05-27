@@ -17,6 +17,7 @@ struct ErrorEntry {
     error: String,
 }
 
+
 #[pyfunction]
 fn clean_ndjson_rust(files: Vec<String>, output_dir: &str) -> PyResult<(Vec<String>, Vec<ErrorEntry>)> {
     // Convert Python list of paths to Rust PathBuf
@@ -69,5 +70,7 @@ fn clean_ndjson_rust(files: Vec<String>, output_dir: &str) -> PyResult<(Vec<Stri
 #[pymodule]
 #[pyo3(name = "py_ndjson_validator")]
 fn py_ndjson_validator(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(clean_ndjson_rust, m)?)
+    m.add_function(wrap_pyfunction!(clean_ndjson_rust, m)?);
+    m.add_class::<ErrorEntry>()?;
+    Ok(())
 }
