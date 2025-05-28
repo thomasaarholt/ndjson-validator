@@ -29,6 +29,7 @@ path = "examples/benchmark.rs"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sonic-rs = "0.5"
 clap = { version = "4.4", features = ["derive"] }
 rayon = "1.8"
 anyhow = "1.0"

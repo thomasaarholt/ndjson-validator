@@ -449,7 +449,7 @@ wheels = [
 
 [[package]]
 name = "py-ndjson-validator"
-version = "0.1.4"
+version = "0.1.5"
 source = { editable = "." }
 
 [package.dev-dependencies]

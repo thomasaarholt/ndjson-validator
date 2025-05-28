@@ -2,3 +2,5 @@ target
 /bench_files
 output
 *.so
+*.pyc
+__pycache__

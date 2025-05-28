@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 use crate::cleaner::clean_file;
 use crate::config::ValidatorConfig;
 use crate::error::{NdJsonError, Result, ValidationError, ValidationSummary};
-use crate::validator::validate_file;
+use crate::validator::{validate_file, validate_file_sonic};
 
 /// Validates and optionally cleans a single ND-JSON file
 pub fn process_file(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<ValidationError>> {
@@ -99,6 +99,69 @@ pub fn validate_directory_with_summary(
     }
 
     validate_files_with_summary(&file_paths, config)
+}
+
+/// Validates and optionally cleans a single ND-JSON file using sonic-rs
+pub fn process_file_sonic(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<ValidationError>> {
+    let errors = validate_file_sonic(file_path)?;
+
+    if config.clean_files && config.output_dir.is_some() {
+        let output_dir = config.output_dir.as_ref().unwrap();
+        fs::create_dir_all(output_dir)
+            .map_err(|_| NdJsonError::FailedToCreateOutputDir(output_dir.display().to_string()))?;
+
+        let relative_path = file_path.file_name().unwrap_or_default();
+        let output_path = output_dir.join(relative_path);
+
+        clean_file(file_path, &output_path, &errors)?;
+    }
+
+    Ok(errors)
+}
+
+/// Validates a list of ND-JSON files using sonic-rs
+pub fn validate_files_sonic(
+    files: &[PathBuf],
+    config: &ValidatorConfig,
+) -> Result<Vec<ValidationError>> {
+    let results = files
+        .par_iter()
+        .map(|file_path| process_file_sonic(file_path, config))
+        .collect::<Vec<Result<Vec<ValidationError>>>>();
+
+    // Flatten results and collect errors
+    let mut all_errors = Vec::new();
+    for result in results {
+        match result {
+            Ok(errors) => all_errors.extend(errors),
+            Err(e) => return Err(e),
+        }
+    }
+
+    Ok(all_errors)
+}
+
+/// Validates multiple ND-JSON files using sonic-rs and returns a summary along with detailed errors
+pub fn validate_files_with_summary_sonic(
+    files: &[PathBuf],
+    config: &ValidatorConfig,
+) -> Result<(ValidationSummary, Vec<ValidationError>)> {
+    let errors = validate_files_sonic(files, config)?;
+
+    // Count unique files with errors
+    let files_with_errors = errors
+        .iter()
+        .map(|e| &e.file_path)
+        .collect::<HashSet<_>>()
+        .len();
+
+    let summary = ValidationSummary {
+        total_files: files.len(),
+        files_with_errors,
+        total_errors: errors.len(),
+    };
+
+    Ok((summary, errors))
 }
 
 #[cfg(test)]
