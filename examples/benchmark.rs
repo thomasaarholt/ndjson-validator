@@ -18,8 +18,8 @@ fn main() -> io::Result<()> {
     
     println!("Generating {} test files with {} lines each...", num_files, lines_per_file);
     generate_test_files(&test_dir, num_files, lines_per_file, error_rate)?;
-    
-    println!("\nRunning benchmark with parallel processing...");
+
+    println!("\nRunning benchmark");
     let parallel_config = ValidatorConfig {
         clean_files: false,
         output_dir: None,
@@ -58,22 +58,53 @@ fn generate_test_files(
             if has_error {
                 // Generate an invalid JSON line
                 let error_type = rng.gen_range(0..5);
+                let long_payload = "x".repeat(3000); // Adjusted for ~20000 chars total
+
                 match error_type {
-                    0 => writeln!(writer, "{{\"name\": \"Invalid\", \"age\":}}")?, // Syntax error
-                    1 => writeln!(writer, "{{\"name\": \"Unclosed\", \"age\": 25")?, // Unclosed brace
-                    2 => writeln!(writer, "{{name: \"No quotes\", \"age\": 30}}")?, // Missing quotes
-                    3 => writeln!(writer, "{{\"name\": \"Invalid value\", \"age\": test}}")?, // Invalid value
-                    _ => writeln!(writer, "{{\"name\": \"Invalid escape\", \"notes\": \"Bad \\escape\"}}")?, // Invalid escape
+                    0 => { // Syntax error: missing colon after level4_long_key_name_jkl
+                        let s = format!(
+                            r#"{{ "level1_long_key_name_abc": {{ "level2_long_key_name_def": {{ "level3_long_key_name_ghi": {{ "level4_long_key_name_jkl"  "level5_long_key_name_mno": {{ "level6_long_key_name_pqr": {{ "level7_long_key_name_stu": {{ "level8_long_key_name_vwx": "{}" }} }} }} }} }} }} }}"#,
+                            long_payload
+                        );
+                        writeln!(writer, "{}", s)?;
+                    }
+                    1 => { // Unclosed brace (missing final '}')
+                        let s = format!(
+                            r#"{{ "level1_long_key_name_abc": {{ "level2_long_key_name_def": {{ "level3_long_key_name_ghi": {{ "level4_long_key_name_jkl": {{ "level5_long_key_name_mno": {{ "level6_long_key_name_pqr": {{ "level7_long_key_name_stu": {{ "level8_long_key_name_vwx": "{}" }} }} }} }} }} }}"#,
+                            long_payload
+                        );
+                        writeln!(writer, "{}", s)?;
+                    }
+                    2 => { // Missing quotes for a key (level4_long_key_name_jkl)
+                        let s = format!(
+                            r#"{{ "level1_long_key_name_abc": {{ "level2_long_key_name_def": {{ "level3_long_key_name_ghi": {{ level4_long_key_name_jkl: {{ "level5_long_key_name_mno": {{ "level6_long_key_name_pqr": {{ "level7_long_key_name_stu": {{ "level8_long_key_name_vwx": "{}" }} }} }} }} }} }} }} }}"#,
+                            long_payload
+                        );
+                        writeln!(writer, "{}", s)?;
+                    }
+                    3 => { // Invalid value (unquoted literal)
+                        let s = format!(
+                            r#"{{ "level1_long_key_name_abc": {{ "level2_long_key_name_def": {{ "level3_long_key_name_ghi": {{ "level4_long_key_name_jkl": {{ "level5_long_key_name_mno": {{ "level6_long_key_name_pqr": {{ "level7_long_key_name_stu": {{ "level8_long_key_name_vwx": invalid_value_{} }} }} }} }} }} }} }} }}"#,
+                            long_payload
+                        );
+                        writeln!(writer, "{}", s)?;
+                    }
+                    _ => { // Invalid escape sequence
+                        let s = format!(
+                            r#"{{ "level1_long_key_name_abc": {{ "level2_long_key_name_def": {{ "level3_long_key_name_ghi": {{ "level4_long_key_name_jkl": {{ "level5_long_key_name_mno": {{ "level6_long_key_name_pqr": {{ "level7_long_key_name_stu": {{ "level8_long_key_name_vwx": "bad\\escape_{}" }} }} }} }} }} }} }} }}"#,
+                            long_payload
+                        );
+                        writeln!(writer, "{}", s)?;
+                    }
                 }
             } else {
                 // Generate a valid JSON line
-                let age = rng.gen_range(20..80);
-                let id = rng.gen_range(1000..9999);
-                writeln!(
-                    writer,
-                    "{{\"name\": \"Person-{}\", \"age\": {}, \"id\": {}, \"active\": {}}}",
-                    id, age, id, rng.gen::<bool>()
-                )?;
+                let long_payload = "v".repeat(3000); // Adjusted for ~20000 chars total
+                let s = format!(
+                    r#"{{ "level1_long_key_name_abc": {{ "level2_long_key_name_def": {{ "level3_long_key_name_ghi": {{ "level4_long_key_name_jkl": {{ "level5_long_key_name_mno": {{ "level6_long_key_name_pqr": {{ "level7_long_key_name_stu": {{ "level8_long_key_name_vwx": "{}" }} }} }} }} }} }} }} }}"#,
+                    long_payload
+                );
+                writeln!(writer, "{}", s)?;
             }
         }
         
