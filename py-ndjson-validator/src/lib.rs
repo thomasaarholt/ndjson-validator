@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use ndjson_validator::{validate_files, validate_files_sonic, ValidatorConfig};
+use ndjson_validator::{validate_files_serde, validate_files_sonic, ValidatorConfig};
 
 #[pyclass]
 #[derive(Debug)]
@@ -19,7 +19,7 @@ struct ErrorEntry {
 
 
 #[pyfunction]
-fn clean_ndjson_rust(files: Vec<String>, output_dir: &str) -> PyResult<(Vec<String>, Vec<ErrorEntry>)> {
+fn clean_ndjson_rust_serde(files: Vec<String>, output_dir: &str) -> PyResult<(Vec<String>, Vec<ErrorEntry>)> {
     // Convert Python list of paths to Rust PathBuf
     let file_paths: Vec<PathBuf> = files.into_iter().map(PathBuf::from).collect();
 
@@ -33,7 +33,7 @@ fn clean_ndjson_rust(files: Vec<String>, output_dir: &str) -> PyResult<(Vec<Stri
     };
 
     // Run validation and cleaning
-    let errors = match validate_files(&file_paths, &config) {
+    let errors = match validate_files_serde(&file_paths, &config) {
         Ok(errors) => errors,
         Err(err) => return Err(PyValueError::new_err(format!("Validation error: {}", err))),
     };
@@ -116,7 +116,7 @@ fn clean_ndjson_rust_sonic(files: Vec<String>, output_dir: &str) -> PyResult<(Ve
 #[pymodule]
 #[pyo3(name = "py_ndjson_validator")]
 fn py_ndjson_validator(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    let _ = m.add_function(wrap_pyfunction!(clean_ndjson_rust, m)?);
+    let _ = m.add_function(wrap_pyfunction!(clean_ndjson_rust_serde, m)?);
     let _ = m.add_function(wrap_pyfunction!(clean_ndjson_rust_sonic, m)?);
     m.add_class::<ErrorEntry>()?;
     Ok(())

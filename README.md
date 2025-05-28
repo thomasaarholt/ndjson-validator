@@ -90,11 +90,11 @@ ndjson-validator = "0.1.0"
 
 ```rust
 use std::path::Path;
-use ndjson_validator::{validate_file, ValidatorConfig};
+use ndjson_validator::{validate_file_serde, ValidatorConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file_path = Path::new("data.ndjson");
-    let errors = validate_file(file_path)?;
+    let errors = validate_file_serde(file_path)?;
     
     if errors.is_empty() {
         println!("File is valid!");
@@ -142,9 +142,9 @@ The library provides a clean, modular API organized into focused modules:
 
 ### Core Functions
 
-- `validate_file()` - Validate a single ND-JSON file
-- `validate_files()` - Validate multiple files with optional parallel processing
-- `process_file()` - Validate and optionally clean a single file
+- `validate_file_serde()` - Validate a single ND-JSON file
+- `validate_files_serde()` - Validate multiple files with optional parallel processing
+- `process_file_serde()` - Validate and optionally clean a single file
 - `validate_multiple()` - Validate multiple files and return summary statistics
 
 ### Configuration

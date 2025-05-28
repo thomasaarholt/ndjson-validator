@@ -8,11 +8,11 @@ use walkdir::WalkDir;
 use crate::cleaner::clean_file;
 use crate::config::ValidatorConfig;
 use crate::error::{NdJsonError, Result, ValidationError, ValidationSummary};
-use crate::validator::{validate_file, validate_file_sonic};
+use crate::validator::{validate_file_serde, validate_file_sonic};
 
 /// Validates and optionally cleans a single ND-JSON file
-pub fn process_file(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<ValidationError>> {
-    let errors = validate_file(file_path)?;
+pub fn process_file_serde(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<ValidationError>> {
+    let errors = validate_file_serde(file_path)?;
 
     if config.clean_files && config.output_dir.is_some() {
         let output_dir = config.output_dir.as_ref().unwrap();
@@ -29,13 +29,13 @@ pub fn process_file(file_path: &Path, config: &ValidatorConfig) -> Result<Vec<Va
 }
 
 /// Validates a list of ND-JSON files
-pub fn validate_files(
+pub fn validate_files_serde(
     files: &[PathBuf],
     config: &ValidatorConfig,
 ) -> Result<Vec<ValidationError>> {
     let results = files
         .par_iter()
-        .map(|file_path| process_file(file_path, config))
+        .map(|file_path| process_file_serde(file_path, config))
         .collect::<Vec<Result<Vec<ValidationError>>>>();
 
     // Flatten results and collect errors
@@ -51,11 +51,11 @@ pub fn validate_files(
 }
 
 /// Validates multiple ND-JSON files and returns a summary along with detailed errors
-pub fn validate_files_with_summary(
+pub fn validate_files_with_summary_serde(
     files: &[PathBuf],
     config: &ValidatorConfig,
 ) -> Result<(ValidationSummary, Vec<ValidationError>)> {
-    let errors = validate_files(files, config)?;
+    let errors = validate_files_serde(files, config)?;
 
     // Count unique files with errors
     let files_with_errors = errors
@@ -74,7 +74,7 @@ pub fn validate_files_with_summary(
 }
 
 /// Validates all ND-JSON files in a directory and returns a summary along with detailed errors
-pub fn validate_directory_with_summary(
+pub fn validate_directory_with_summary_serde(
     dir_path: &Path,
     config: &ValidatorConfig,
 ) -> Result<(ValidationSummary, Vec<ValidationError>)> {
@@ -98,7 +98,7 @@ pub fn validate_directory_with_summary(
         return Err(NdJsonError::NoFilesFound(dir_path.display().to_string()));
     }
 
-    validate_files_with_summary(&file_paths, config)
+    validate_files_with_summary_serde(&file_paths, config)
 }
 
 /// Validates and optionally cleans a single ND-JSON file using sonic-rs
@@ -164,6 +164,34 @@ pub fn validate_files_with_summary_sonic(
     Ok((summary, errors))
 }
 
+/// Validates all ND-JSON files in a directory using sonic-rs and returns a summary along with detailed errors
+pub fn validate_directory_with_summary_sonic(
+    dir_path: &Path,
+    config: &ValidatorConfig,
+) -> Result<(ValidationSummary, Vec<ValidationError>)> {
+    let mut file_paths = Vec::new();
+
+    // Find all NDJSON files in the directory
+    for entry_result in WalkDir::new(dir_path).max_depth(1).into_iter() {
+        let entry = entry_result?;
+        let path = entry.path();
+        if path.is_file()
+            && (path
+                .extension()
+                .map_or(false, |ext| ext == "ndjson" || ext == "jsonl")
+                || path.to_string_lossy().contains(".nd.json"))
+        {
+            file_paths.push(path.to_path_buf());
+        }
+    }
+
+    if file_paths.is_empty() {
+        return Err(NdJsonError::NoFilesFound(dir_path.display().to_string()));
+    }
+
+    validate_files_with_summary_sonic(&file_paths, config)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -181,7 +209,7 @@ mod tests {
             output_dir: Some(output_dir.to_path_buf()),
         };
 
-        let errors = process_file(file_path, &config).unwrap();
+        let errors = process_file_serde(file_path, &config).unwrap();
         assert_eq!(errors.len(), 1);
 
         let output_file = output_dir.join("invalid1.ndjson");
@@ -208,7 +236,7 @@ mod tests {
             output_dir: Some(output_dir.to_path_buf()),
         };
 
-        let errors = process_file(file_path, &config).unwrap();
+        let errors = process_file_serde(file_path, &config).unwrap();
         assert_eq!(errors.len(), 1);
 
         // No output file should be created
@@ -227,7 +255,7 @@ mod tests {
             output_dir: Some(output_dir.to_path_buf()),
         };
 
-        let errors = process_file(file_path, &config).unwrap();
+        let errors = process_file_serde(file_path, &config).unwrap();
         assert_eq!(errors.len(), 0); // No errors in valid file
 
         // Output file should be created and be a copy of the input
@@ -255,7 +283,7 @@ mod tests {
             output_dir: Some(output_dir_path.to_path_buf()),
         };
 
-        let errors = process_file(&input_file_path, &config).unwrap();
+        let errors = process_file_serde(&input_file_path, &config).unwrap();
         assert_eq!(errors.len(), 2, "Should find two errors in the input file");
 
         let expected_output_file_path = output_dir_path.join(input_file_name);
@@ -274,7 +302,7 @@ mod tests {
         ];
 
         let config = ValidatorConfig::default();
-        let errors = validate_files(&files, &config).unwrap();
+        let errors = validate_files_serde(&files, &config).unwrap();
 
         assert_eq!(errors.len(), 1); // One error from invalid1.ndjson
         assert!(errors[0].file_path.ends_with("invalid1.ndjson"));
@@ -292,7 +320,7 @@ mod tests {
             clean_files: false,
             output_dir: None,
         };
-        let parallel_errors = validate_files(&files, &parallel_config).unwrap();
+        let parallel_errors = validate_files_serde(&files, &parallel_config).unwrap();
 
         assert_eq!(parallel_errors.len(), 1 + 8); // 1 from invalid1.ndjson + 8 from invalid2.ndjson
     }
@@ -308,7 +336,7 @@ mod tests {
         ];
 
         let config = ValidatorConfig::default();
-        let (summary, errors) = validate_files_with_summary(&files, &config).unwrap();
+        let (summary, errors) = validate_files_with_summary_serde(&files, &config).unwrap();
 
         assert_eq!(summary.total_files, 3);
         assert_eq!(summary.files_with_errors, 2); // valid.ndjson has no errors
@@ -319,7 +347,7 @@ mod tests {
     fn test_directory_summary() {
         let config = ValidatorConfig::default();
         let (summary, errors) =
-            validate_directory_with_summary(Path::new("tests"), &config).unwrap();
+            validate_directory_with_summary_serde(Path::new("tests"), &config).unwrap();
 
         assert_eq!(summary.total_files, 3); // valid.ndjson, invalid1.ndjson, invalid2.ndjson
         assert_eq!(summary.files_with_errors, 2); // Two files with errors

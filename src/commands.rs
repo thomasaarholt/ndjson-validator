@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use ndjson_validator::{
-    validate_directory_with_summary, validate_file, validate_files_with_summary, 
+    validate_directory_with_summary_serde, validate_file_serde, validate_files_with_summary_serde, 
     ValidationError, ValidationSummary, ValidatorConfig
 };
 
@@ -67,7 +67,7 @@ pub fn handle_validate_file(file_path: &PathBuf, clean: bool, output_dir: &Optio
     };
     
     let start = Instant::now();
-    let errors = validate_file(file_path)
+    let errors = validate_file_serde(file_path)
         .with_context(|| format!("Failed to validate file: {}", file_path.display()))?;
     let duration = start.elapsed();
     
@@ -94,7 +94,7 @@ pub fn handle_validate_files(file_paths: &[PathBuf], clean: bool, output_dir: &O
     };
     
     let start = Instant::now();
-    let (summary, errors) = validate_files_with_summary(file_paths, &config)
+    let (summary, errors) = validate_files_with_summary_serde(file_paths, &config)
         .with_context(|| "Failed to validate files")?;
     let duration = start.elapsed();
     
@@ -116,7 +116,7 @@ pub fn handle_validate_dir(dir_path: &PathBuf, clean: bool, output_dir: &Option<
     };
     
     let start = Instant::now();
-    let (summary, errors) = validate_directory_with_summary(dir_path, &config)
+    let (summary, errors) = validate_directory_with_summary_serde(dir_path, &config)
         .with_context(|| format!("Failed to validate files in directory: {}", dir_path.display()))?;
     let duration = start.elapsed();
     

@@ -3,7 +3,7 @@ use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use ndjson_validator::{validate_directory_with_summary, ValidatorConfig};
+use ndjson_validator::{validate_directory_with_summary_serde, validate_directory_with_summary_sonic, ValidatorConfig};
 use rand::{Rng, thread_rng};
 
 fn main() -> io::Result<()> {
@@ -19,22 +19,62 @@ fn main() -> io::Result<()> {
     println!("Generating {} test files with {} lines each...", num_files, lines_per_file);
     generate_test_files(&test_dir, num_files, lines_per_file, error_rate)?;
 
-    println!("\nRunning benchmark");
-    let parallel_config = ValidatorConfig {
+    println!("\nRunning benchmark with serde_json...");
+    let serde_config = ValidatorConfig {
         clean_files: false,
         output_dir: None,
     };
     
     let start = Instant::now();
-    let (summary, _) = validate_directory_with_summary(&test_dir, &parallel_config)
-        .expect("Failed to validate directory");
-    let parallel_duration = start.elapsed();
+    let (serde_summary, _) = validate_directory_with_summary_serde(&test_dir, &serde_config)
+        .expect("Failed to validate directory with serde_json");
+    let serde_duration = start.elapsed();
     
-    println!("Parallel processing results:");
-    println!("  Total files: {}", summary.total_files);
-    println!("  Files with errors: {}", summary.files_with_errors);
-    println!("  Total errors: {}", summary.total_errors);
-    println!("  Time taken: {:.2?}", parallel_duration);
+    println!("Serde_json processing results:");
+    println!("  Total files: {}", serde_summary.total_files);
+    println!("  Files with errors: {}", serde_summary.files_with_errors);
+    println!("  Total errors: {}", serde_summary.total_errors);
+    println!("  Time taken: {:.2?}", serde_duration);
+    
+    println!("\nRunning benchmark with sonic-rs...");
+    let sonic_config = ValidatorConfig {
+        clean_files: false,
+        output_dir: None,
+    };
+    
+    let start = Instant::now();
+    let (sonic_summary, _) = validate_directory_with_summary_sonic(&test_dir, &sonic_config)
+        .expect("Failed to validate directory with sonic-rs");
+    let sonic_duration = start.elapsed();
+    
+    println!("Sonic-rs processing results:");
+    println!("  Total files: {}", sonic_summary.total_files);
+    println!("  Files with errors: {}", sonic_summary.files_with_errors);
+    println!("  Total errors: {}", sonic_summary.total_errors);
+    println!("  Time taken: {:.2?}", sonic_duration);
+    
+    // Compare results
+    println!("\n📊 Performance Comparison:");
+    println!("  Serde_json time: {:.2?}", serde_duration);
+    println!("  Sonic-rs time:   {:.2?}", sonic_duration);
+    
+    if sonic_duration.as_nanos() > 0 {
+        let speedup = serde_duration.as_nanos() as f64 / sonic_duration.as_nanos() as f64;
+        println!("  Speedup ratio:   {:.2}x", speedup);
+        if speedup > 1.0 {
+            println!("  🚀 Sonic-rs is {:.2}x faster!", speedup);
+        } else if speedup < 1.0 {
+            println!("  📊 Serde_json is {:.2}x faster.", 1.0 / speedup);
+        } else {
+            println!("  ⚖️  Both parsers have similar performance.");
+        }
+    }
+    
+    // Verify both parsers found the same errors
+    println!("\n🔍 Validation Comparison:");
+    println!("  Same total files: {}", serde_summary.total_files == sonic_summary.total_files);
+    println!("  Same files with errors: {}", serde_summary.files_with_errors == sonic_summary.files_with_errors);
+    println!("  Same total errors: {}", serde_summary.total_errors == sonic_summary.total_errors);
     
     Ok(())
 }

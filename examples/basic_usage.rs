@@ -1,11 +1,11 @@
 use std::path::{Path, PathBuf};
-use ndjson_validator::{validate_file, validate_directory_with_summary, ValidatorConfig};
+use ndjson_validator::{validate_file_serde, validate_directory_with_summary_serde, ValidatorConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 1: Validate a single file
     println!("Example 1: Validating a single file");
     let file_path = Path::new("tests/valid.ndjson");
-    let errors = validate_file(file_path)?;
+    let errors = validate_file_serde(file_path)?;
     
     if errors.is_empty() {
         println!("✅ File '{}' is valid!", file_path.display());
@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 2: Validate an invalid file
     println!("\nExample 2: Validating a file with invalid JSON");
     let invalid_file_path = Path::new("tests/invalid1.ndjson");
-    let errors = validate_file(invalid_file_path)?;
+    let errors = validate_file_serde(invalid_file_path)?;
     
     if errors.is_empty() {
         println!("✅ File '{}' is valid!", invalid_file_path.display());
@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         output_dir: Some(PathBuf::from("cleaned_output")),
     };
     
-    let (summary, _errors) = validate_directory_with_summary(dir_path, &config)?;
+    let (summary, _errors) = validate_directory_with_summary_serde(dir_path, &config)?;
     
     println!("Validation Summary:");
     println!("  Total files processed: {}", summary.total_files);

@@ -47,7 +47,7 @@ def test_both_methods():
     # Test serde_json implementation
     print("\n🔧 Testing serde_json implementation...")
     start_time = time.time()
-    serde_cleaned, serde_errors = py_ndjson_validator.clean_ndjson([Path(f) for f in test_files], Path(serde_output))
+    serde_cleaned, serde_errors = py_ndjson_validator.clean_ndjson_serde([Path(f) for f in test_files], Path(serde_output))
     serde_time = time.time() - start_time
     
     print(f"⏱️  Serde time: {serde_time:.4f} seconds")

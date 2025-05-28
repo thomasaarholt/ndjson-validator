@@ -2,7 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import json
 
-from py_ndjson_validator.py_ndjson_validator import clean_ndjson_rust, clean_ndjson_rust_sonic, ErrorEntry
+from py_ndjson_validator.py_ndjson_validator import clean_ndjson_rust_serde, clean_ndjson_rust_sonic, ErrorEntry
 
 
 def py_clean_ndjson(
@@ -29,7 +29,7 @@ def py_clean_ndjson(
     return new_files, errors
 
 
-def clean_ndjson(
+def clean_ndjson_serde(
     files: list[Path], output_dir: Path
 ) -> tuple[list[Path], list[ErrorEntry]]:
     """
@@ -53,7 +53,7 @@ def clean_ndjson(
     file_paths = [str(file) for file in files]
     output_dir_str = str(output_dir)
 
-    cleaned_files, errors = clean_ndjson_rust(file_paths, output_dir_str)
+    cleaned_files, errors = clean_ndjson_rust_serde(file_paths, output_dir_str)
 
     cleaned_file_paths = [Path(file) for file in cleaned_files]
 

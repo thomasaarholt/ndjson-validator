@@ -8,7 +8,7 @@ use sonic_rs::LazyValue;
 use crate::error::{Result, ValidationError};
 
 /// Validates a single ND-JSON file and returns a list of validation errors
-pub fn validate_file(file_path: &Path) -> Result<Vec<ValidationError>> {
+pub fn validate_file_serde(file_path: &Path) -> Result<Vec<ValidationError>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
     let mut errors = Vec::new();
@@ -74,14 +74,14 @@ mod tests {
     #[test]
     fn test_valid_ndjson() {
         let file_path = Path::new("tests/valid.ndjson");
-        let errors = validate_file(file_path).unwrap();
+        let errors = validate_file_serde(file_path).unwrap();
         assert_eq!(errors.len(), 0);
     }
     
     #[test]
     fn test_invalid_ndjson1() {
         let file_path = Path::new("tests/invalid1.ndjson");
-        let errors = validate_file(file_path).unwrap();
+        let errors = validate_file_serde(file_path).unwrap();
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].line_number, 1);
     }
@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn test_invalid_ndjson2() {
         let file_path = Path::new("tests/invalid2.ndjson");
-        let errors = validate_file(file_path).unwrap();
+        let errors = validate_file_serde(file_path).unwrap();
         assert_eq!(errors.len(), 8); // All lines except first and last are invalid
     }
 }

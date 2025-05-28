@@ -1,5 +1,3 @@
-from pathlib import Path
-
 class ErrorEntry:
     """
     Represents an error found during NDJSON validation.
@@ -16,11 +14,31 @@ class ErrorEntry:
     line_content: str
     error: str
 
-def clean_ndjson_rust(
+def clean_ndjson_rust_serde(
     files: list[str], output_dir: str
 ) -> tuple[list[str], list[ErrorEntry]]:
     """
-    Validates and cleans NDJSON files.
+    Validates and cleans NDJSON files using the serde parser.
+
+    Args:
+        files: list of file paths to validate and clean
+        output_dir: Directory to write cleaned files to
+
+    Returns:
+        A tuple containing:
+        - list of paths to the cleaned files
+        - list of errors found during validation
+
+    Raises:
+        ValueError: If there's an error during validation
+    """
+    ...
+
+def clean_ndjson_rust_sonic(
+    files: list[str], output_dir: str
+) -> tuple[list[str], list[ErrorEntry]]:
+    """
+    Validates and cleans NDJSON files using the Sonic parser.
 
     Args:
         files: list of file paths to validate and clean
